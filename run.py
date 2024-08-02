@@ -11,14 +11,14 @@ class LogFileHandler(FileSystemEventHandler):
         self.file_position = 0  # 记录文件的当前位置
         self.replacement_patterns = {
             r'Received friends\. updated:(\d+) new:(\d+) rewrited:(\d+)': self.translate_friends_received,
-            r'\[REMOTE\] Authority revoked from local because of server request': '由于服务器请求，从本地吊销了权限',
-            r'Complying with LevelServer revoke request': '遵循LevelServer的吊销请求',
-            r'\[REMOTE\] Synchronized authority with LevelServer because of election': 'REMOTE 由于选举，已将权限与[LevelServer]同步',
+            r'\[REMOTE\] Authority revoked from local because of server request': '[更换房主...]由于服务器请求，从本地吊销了权限',
+            r'Complying with LevelServer revoke request': '[更换房主...]遵循LevelServer的吊销请求',
+            r'\[REMOTE\] Synchronized authority with LevelServer because of election': '[更换房主成功]由于选举，已将权限与LevelServer同步',
             r'Add recent collectible (\d+)': self.translate_add_collectible,
             r'Synced!': '同步完成！',
-            r'SetAchievementStats succeeded\.': 'SetAchievementStats成功了',
-            r'\[REMOTE\] Cleared remote authority because of server request': 'REMOTE 因服务器请求清除了远程权限',
-            r'\[REMOTE\] Local elected by server as authority': 'REMOTE 本地被服务器选为权限(这将说明您当前为房主)',
+            r'SetAchievementStats succeeded\.': '重新设置统计值，成功了',
+            r'\[REMOTE\] Cleared remote authority because of server request': '[更换房主...]因服务器请求清除了远程权限',
+            r'\[REMOTE\] Local elected by server as authority': '[更换房主成功]本地被服务器选为权限(这将说明您当前为房主)',
             r'Players updated: (\d+) total, (\d+) in level': self.translate_players_updated,
             r'Resync friends\.count: (\d+)': self.translate_resync_friends,
             r'move to \[(.*?)\] with (\d+) others\.': self.translate_move,
@@ -27,6 +27,7 @@ class LogFileHandler(FileSystemEventHandler):
             r'Connected to game server: \[(.*?)\] event data: (\d+)': self.translate_connected_server,
             r'Recvd PlayerJoined: ([a-f0-9\-]+)': self.translate_player_joined,
             r'Resync friends\.': '重新同步好友。',
+            r'.*error.*': '日志当前输出出现错误,游戏会暂停日志信息输出，请重启游戏和脚本。',
         }
 
     def on_modified(self, event):
@@ -34,13 +35,13 @@ class LogFileHandler(FileSystemEventHandler):
             self.process_new_lines()
 
     def translate_friends_received(self, updated, new, rewrited):
-        return f"收到好友信息。更新：{updated}，新增：{new}，重写：{rewrited}"
+        return f"收到玩家 更新：{updated}，新增：{new}，重写：{rewrited}"
 
     def translate_add_collectible(self, collectible_id):
-        return f"添加最近的收藏品 {collectible_id}"
+        return f"添加最近的使用表情 {collectible_id}"
 
     def translate_players_updated(self, total, level):
-        return f"玩家更新：共[{total}]人，级别内[{level}]人"
+        return f"玩家更新：共[{total}]人，当前房间内[{level}]人"
 
     def translate_resync_friends(self, count):
         return f"重新同步好友数量：{count}"
@@ -84,7 +85,8 @@ class LogFileHandler(FileSystemEventHandler):
                 print(f"{timestamp} - {translated_line}")
 
 def main():
-    log_file_path = input("请输入日志文件的路径: ")
+    print("游戏只有每次启动进入主菜单才会清空日志内容，请确保游戏已启动并登陆成功再启动监听")
+    log_file_path = input("请输入日志文件的路径到具体log文件: ")
     event_handler = LogFileHandler(log_file_path)
     observer = Observer()
     observer.schedule(event_handler, path=os.path.dirname(log_file_path), recursive=False)
@@ -93,7 +95,7 @@ def main():
 
     try:
         while True:
-            time.sleep(0.01)  # 使用0.1秒间隔轮询检查新内容
+            time.sleep(0.01)  # 使用0.01秒间隔轮询检查新内容
             event_handler.process_new_lines()  # 轮询检查新内容
     except KeyboardInterrupt:
         observer.stop()
